@@ -1,45 +1,14 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
 # ---------------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA (WIDE MODE)
 # ---------------------------------------------------------
 st.set_page_config(page_title="Ellenco - Kanban Disciplinar", layout="wide")
 
-# Estilização CSS para cartões compactos e elegantes
+# Estilização CSS leve para otimizar os espaços
 st.markdown("""
     <style>
-    .kanban-card {
-        border-radius: 6px;
-        padding: 8px 10px;
-        margin-bottom: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        border-left: 5px solid #333;
-        background-color: #ffffff;
-        color: #1e1e1e;
-    }
-    .card-title {
-        font-weight: bold;
-        font-size: 13px;
-        margin-bottom: 2px;
-        color: #111;
-    }
-    .card-info {
-        font-size: 11px;
-        color: #555;
-        margin-bottom: 1px;
-    }
-    .badge-obra {
-        display: inline-block;
-        padding: 1px 6px;
-        border-radius: 3px;
-        font-size: 10px;
-        font-weight: bold;
-        color: white;
-        margin-top: 4px;
-    }
-    /* Compactar espaçamentos do Streamlit */
     .block-container {
         padding-top: 1.5rem;
         padding-bottom: 1.5rem;
@@ -58,12 +27,12 @@ def carregar_dados():
         df = pd.read_excel("WF0031.xlsx", sheet_name="Exportar Planilha")
         return df
     except Exception as e:
-        # Dados de fallback caso o Excel não esteja carregado
+        # Dados de fallback para testes caso o arquivo não seja encontrado
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 1},
-            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 2},
-            {"CHAPA": 3, "FUNCIONARIO": "DANILO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 3},
-            {"CHAPA": 4, "FUNCIONARIO": "ALBERTO", "CARGO": "Auxiliar Administrativo", "SECAO": "DER/PR - PARANÁ", "TOTAL_FALTAS": 4}
+            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 1},
+            {"CHAPA": 3, "FUNCIONARIO": "DANILO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 1},
+            {"CHAPA": 4, "FUNCIONARIO": "ALBERTO", "CARGO": "Auxiliar Administrativo", "SECAO": "DER/PR - PARANÁ", "TOTAL_FALTAS": 1}
         ])
 
 df = carregar_dados()
@@ -82,55 +51,49 @@ def classificar_etapa(total_faltas):
 df["ETAPA"] = df["TOTAL_FALTAS"].apply(classificar_etapa)
 
 # ---------------------------------------------------------
-# BARRA LATERAL - FILTROS DE PESQUISA
+# BARRA LATERAL - FILTROS DE PESQUISA (COM TRATAMENTO)
 # ---------------------------------------------------------
 st.sidebar.header("🔍 Filtros de Pesquisa")
 
-# Filtro de Busca por Nome ou Chapa
+# 1. Busca por texto
 busca_texto = st.sidebar.text_input("Pesquisar Colaborador / Chapa", "")
 
-# Filtro por Seção / Obra
-secoes_disponiveis = sorted(df["SECAO"].dropna().unique().tolist())
-filtro_secao = st.sidebar.multiselect("Filtrar por Obra / Seção", options=secoes_disponiveis, default=secoes_disponiveis)
+# 2. Filtro por Seção / Obra (padrão: todas selecionadas)
+secoes_disponiveis = sorted(df["SECAO"].dropna().astype(str).unique().tolist())
+filtro_secao = st.sidebar.multiselect(
+    "Filtrar por Obra / Seção", 
+    options=secoes_disponiveis, 
+    default=secoes_disponiveis
+)
 
-# Filtro por Cargo
-cargos_disponiveis = sorted(df["CARGO"].dropna().unique().tolist())
-filtro_cargo = st.sidebar.multiselect("Filtrar por Cargo", options=cargos_disponiveis, default=cargos_disponiveis)
+# 3. Filtro por Cargo (padrão: todos selecionados)
+cargos_disponiveis = sorted(df["CARGO"].dropna().astype(str).unique().tolist())
+filtro_cargo = st.sidebar.multiselect(
+    "Filtrar por Cargo", 
+    options=cargos_disponiveis, 
+    default=cargos_disponiveis
+)
 
-# Aplicando os filtros ao DataFrame
+# Aplicação dos Filtros
 df_filtrado = df.copy()
 
 if busca_texto:
     busca_upper = busca_texto.upper()
     df_filtrado = df_filtrado[
-        df_filtrado["FUNCIONARIO"].str.upper().str.contains(busca_upper, na=False) |
+        df_filtrado["FUNCIONARIO"].astype(str).str.upper().str.contains(busca_upper, na=False) |
         df_filtrado["CHAPA"].astype(str).str.contains(busca_upper, na=False)
     ]
 
+# Aplica filtro de seção apenas se algo for selecionado
 if filtro_secao:
-    df_filtrado = df_filtrado[df_filtrado["SECAO"].isin(filtro_secao)]
+    df_filtrado = df_filtrado[df_filtrado["SECAO"].astype(str).isin(filtro_secao)]
 
+# Aplica filtro de cargo apenas se algo for selecionado
 if filtro_cargo:
-    df_filtrado = df_filtrado[df_filtrado["CARGO"].isin(filtro_cargo)]
+    df_filtrado = df_filtrado[df_filtrado["CARGO"].astype(str).isin(filtro_cargo)]
 
 # ---------------------------------------------------------
-# PALETA DE CORES DINÂMICA POR OBRA
-# ---------------------------------------------------------
-CORES_OBRAS = [
-    "#2E86AB", "#A23B52", "#F18F01", "#C73E1D", "#3BCEAC", 
-    "#8338EC", "#FF006E", "#3A86FF", "#FB5607", "#06D6A0"
-]
-
-def obter_cor_obra(obra, lista_obras):
-    if obra not in lista_obras:
-        lista_obras.append(obra)
-    idx = lista_obras.index(obra) % len(CORES_OBRAS)
-    return CORES_OBRAS[idx]
-
-obras_unicas = list(df["SECAO"].unique())
-
-# ---------------------------------------------------------
-# MONTAGEM DO KANBAN COMPACTO (4 COLUNAS)
+# MONTAGEM DO KANBAN VISÍVEL (4 COLUNAS NATIVAS)
 # ---------------------------------------------------------
 st.markdown("### 📊 Quadro Kanban Operacional")
 
@@ -145,6 +108,28 @@ cols = st.columns(4)
 
 for i, etapa in enumerate(etapas_kanban):
     with cols[i]:
-        # Cabeçalho da coluna com contador de colaboradores
         df_etapa = df_filtrado[df_filtrado["ETAPA"] == etapa]
-        st.markdown(f"**{etapa}** ({len(df_etapa)})")
+        
+        # Título da coluna com badge de contagem
+        st.subheader(f"{etapa}")
+        st.caption(f"👥 Total: **{len(df_etapa)}** colaborador(es)")
+        st.markdown("---")
+        
+        if df_etapa.empty:
+            st.info("Nenhum colaborador nesta etapa.")
+        
+        for _, row in df_etapa.iterrows():
+            # Cartão usando container nativo do Streamlit (Garante renderização visível)
+            with st.container(border=True):
+                st.markdown(f"👤 **{row['FUNCIONARIO']}**")
+                st.markdown(f"🔢 **Chapa:** {row['CHAPA']} | **Faltas:** {row['TOTAL_FALTAS']}")
+                st.markdown(f"💼 **Cargo:** {row.get('CARGO', '-')}")
+                st.markdown(f"🏗️ **Obra:** `{row.get('SECAO', '-')}`")
+
+# ---------------------------------------------------------
+# RESUMO DAS OBRAS ABAIXO DO KANBAN
+# ---------------------------------------------------------
+st.divider()
+st.markdown("##### 📍 Obras/Seções Selecionadas")
+if filtro_secao:
+    st.write(" | ".join([f"`{s}`" for s in filtro_secao]))

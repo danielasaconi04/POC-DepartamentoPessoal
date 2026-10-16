@@ -6,12 +6,40 @@ import pandas as pd
 # ---------------------------------------------------------
 st.set_page_config(page_title="Ellenco - Kanban Disciplinar", layout="wide")
 
-# Estilização CSS leve para otimizar os espaços
+# Estilização CSS para cartões com fundo preenchido por cor
 st.markdown("""
     <style>
     .block-container {
         padding-top: 1.5rem;
         padding-bottom: 1.5rem;
+    }
+    .card-kanban-obra {
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        color: #111111;
+        font-family: sans-serif;
+    }
+    .card-nome {
+        font-weight: bold;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+    .card-detalhe {
+        font-size: 12px;
+        margin-bottom: 2px;
+        opacity: 0.9;
+    }
+    .card-tag-obra {
+        display: inline-block;
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        margin-top: 4px;
+        color: #000000;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -27,7 +55,6 @@ def carregar_dados():
         df = pd.read_excel("WF0031.xlsx", sheet_name="Exportar Planilha")
         return df
     except Exception as e:
-        # Dados de fallback para testes caso o arquivo não seja encontrado
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 1},
             {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 1},
@@ -51,14 +78,34 @@ def classificar_etapa(total_faltas):
 df["ETAPA"] = df["TOTAL_FALTAS"].apply(classificar_etapa)
 
 # ---------------------------------------------------------
-# BARRA LATERAL - FILTROS DE PESQUISA (COM TRATAMENTO)
+# PALETA DE CORES SUAVES E VISÍVEIS POR OBRA (PASTEL/HIGHLIGHT)
+# ---------------------------------------------------------
+PALETA_CORES_OBRA = {
+    "DER/SP - TATUI": "#E3F2FD",      # Azul Claro
+    "CCR - SÃO ROQUE": "#FFF3E0",     # Laranja Claro
+    "DER/PR - PARANÁ": "#E8F5E9",     # Verde Claro
+    "CONSERVA": "#F3E5F5",             # Roxo Claro
+    "SAO ROQUE/SP": "#FFEBEE",         # Rosa Claro
+    "SAO ROQUE": "#FFF8E1"             # Amarelo Claro
+}
+
+CORES_PADRAO = ["#E3F2FD", "#FFF3E0", "#E8F5E9", "#F3E5F5", "#FFEBEE", "#FFF8E1", "#E0F2F1", "#FCE4EC"]
+
+def obter_cor_fundo_obra(obra):
+    obra_str = str(obra).strip()
+    if obra_str in PALETA_CORES_OBRA:
+        return PALETA_CORES_OBRA[obra_str]
+    # Se for uma obra nova, gera uma cor pastel baseada no hash do nome
+    idx = abs(hash(obra_str)) % len(CORES_PADRAO)
+    return CORES_PADRAO[idx]
+
+# ---------------------------------------------------------
+# BARRA LATERAL - FILTROS DE PESQUISA
 # ---------------------------------------------------------
 st.sidebar.header("🔍 Filtros de Pesquisa")
 
-# 1. Busca por texto
 busca_texto = st.sidebar.text_input("Pesquisar Colaborador / Chapa", "")
 
-# 2. Filtro por Seção / Obra (padrão: todas selecionadas)
 secoes_disponiveis = sorted(df["SECAO"].dropna().astype(str).unique().tolist())
 filtro_secao = st.sidebar.multiselect(
     "Filtrar por Obra / Seção", 
@@ -66,7 +113,6 @@ filtro_secao = st.sidebar.multiselect(
     default=secoes_disponiveis
 )
 
-# 3. Filtro por Cargo (padrão: todos selecionados)
 cargos_disponiveis = sorted(df["CARGO"].dropna().astype(str).unique().tolist())
 filtro_cargo = st.sidebar.multiselect(
     "Filtrar por Cargo", 
@@ -74,7 +120,6 @@ filtro_cargo = st.sidebar.multiselect(
     default=cargos_disponiveis
 )
 
-# Aplicação dos Filtros
 df_filtrado = df.copy()
 
 if busca_texto:
@@ -84,16 +129,14 @@ if busca_texto:
         df_filtrado["CHAPA"].astype(str).str.contains(busca_upper, na=False)
     ]
 
-# Aplica filtro de seção apenas se algo for selecionado
 if filtro_secao:
     df_filtrado = df_filtrado[df_filtrado["SECAO"].astype(str).isin(filtro_secao)]
 
-# Aplica filtro de cargo apenas se algo for selecionado
 if filtro_cargo:
     df_filtrado = df_filtrado[df_filtrado["CARGO"].astype(str).isin(filtro_cargo)]
 
 # ---------------------------------------------------------
-# MONTAGEM DO KANBAN VISÍVEL (4 COLUNAS NATIVAS)
+# QUADRO KANBAN
 # ---------------------------------------------------------
 st.markdown("### 📊 Quadro Kanban Operacional")
 
@@ -110,7 +153,6 @@ for i, etapa in enumerate(etapas_kanban):
     with cols[i]:
         df_etapa = df_filtrado[df_filtrado["ETAPA"] == etapa]
         
-        # Título da coluna com badge de contagem
         st.subheader(f"{etapa}")
         st.caption(f"👥 Total: **{len(df_etapa)}** colaborador(es)")
         st.markdown("---")
@@ -119,17 +161,34 @@ for i, etapa in enumerate(etapas_kanban):
             st.info("Nenhum colaborador nesta etapa.")
         
         for _, row in df_etapa.iterrows():
-            # Cartão usando container nativo do Streamlit (Garante renderização visível)
-            with st.container(border=True):
-                st.markdown(f"👤 **{row['FUNCIONARIO']}**")
-                st.markdown(f"🔢 **Chapa:** {row['CHAPA']} | **Faltas:** {row['TOTAL_FALTAS']}")
-                st.markdown(f"💼 **Cargo:** {row.get('CARGO', '-')}")
-                st.markdown(f"🏗️ **Obra:** `{row.get('SECAO', '-')}`")
+            obra_nome = str(row.get("SECAO", "-")).strip()
+            cor_fundo = obter_cor_fundo_obra(obra_nome)
+            
+            # HTML do cartão totalmente colorido de acordo com a obra
+            card_html = f"""
+            <div class="card-kanban-obra" style="background-color: {cor_fundo}; border: 1px solid rgba(0,0,0,0.1);">
+                <div class="card-nome">👤 {row['FUNCIONARIO']}</div>
+                <div class="card-detalhe">🔢 <b>Chapa:</b> {row['CHAPA']} | <b>Faltas:</b> {row['TOTAL_FALTAS']}</div>
+                <div class="card-detalhe">💼 <b>Cargo:</b> {row.get('CARGO', '-')}</div>
+                <div class="card-tag-obra">🏗️ {obra_nome}</div>
+            </div>
+            """
+            st.markdown(card_html, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# RESUMO DAS OBRAS ABAIXO DO KANBAN
+# LEGENDA DE CORES NO RODAPÉ
 # ---------------------------------------------------------
 st.divider()
-st.markdown("##### 📍 Obras/Seções Selecionadas")
-if filtro_secao:
-    st.write(" | ".join([f"`{s}`" for s in filtro_secao]))
+st.markdown("##### 🎨 Legenda de Cores das Obras")
+
+obras_presentes = sorted(df["SECAO"].dropna().astype(str).unique().tolist())
+cols_legenda = st.columns(min(len(obras_presentes), 6) if len(obras_presentes) > 0 else 1)
+
+for idx, obra in enumerate(obras_presentes):
+    cor = obter_cor_fundo_obra(obra)
+    with cols_legenda[idx % len(cols_legenda)]:
+        st.markdown(
+            f'<div style="background-color:{cor}; padding:4px 8px; border-radius:4px; text-align:center; border:1px solid #ccc;">'
+            f'<small><b>{obra}</b></small></div>', 
+            unsafe_allow_html=True
+        )

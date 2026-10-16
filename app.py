@@ -72,7 +72,6 @@ if "df_dados" not in st.session_state:
 
 df = st.session_state.df_dados
 
-# Classificação automática do Kanban
 def classificar_etapa(total_faltas):
     if total_faltas == 1:
         return "1ª Falta (Advertência)"
@@ -86,7 +85,7 @@ def classificar_etapa(total_faltas):
 df["ETAPA"] = df["TOTAL_FALTAS"].apply(classificar_etapa)
 
 # ---------------------------------------------------------
-# GERADOR DE PDF DAS MINUTAS OFICIAIS ELLENCO
+# GERADOR DE PDF DAS MINUTAS OFICIAIS ELLENCO (ATUALIZADO)
 # ---------------------------------------------------------
 def gerar_pdf_medida(nome, chapa, cargo, obra, etapa, data_envio):
     pdf = FPDF()
@@ -115,7 +114,8 @@ def gerar_pdf_medida(nome, chapa, cargo, obra, etapa, data_envio):
     pdf.set_font("Arial", "I", 8)
     pdf.multi_cell(0, 5, "Transcrição legal: Artigo 482 da CLT - Constituem justa causa para rescisão do contrato de trabalho pelo empregador: e) desídia no desempenho das respectivas funções; h) ato de indisciplina ou insubordinação.")
     
-    return pdf.output(dest="S").encode("latin1")
+    # Compatibilidade atualizada com fpdf2
+    return pdf.output()
 
 # ---------------------------------------------------------
 # CORES POR OBRA
@@ -188,7 +188,6 @@ for i, etapa in enumerate(etapas_kanban):
             chapa_val = row["CHAPA"]
             data_medida = row.get("DATA_MEDIDA", datetime.now().strftime("%d/%m/%Y"))
             
-            # 1. Encarte Visual Colorido
             card_html = f"""
             <div class="card-kanban-solido" style="background-color: {cor_fundo};">
                 <div class="card-nome-solido">👤 {row['FUNCIONARIO']}</div>
@@ -200,7 +199,6 @@ for i, etapa in enumerate(etapas_kanban):
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            # 2. Botão de Download do PDF Gerado
             pdf_data = gerar_pdf_medida(
                 nome=row['FUNCIONARIO'],
                 chapa=chapa_val,
@@ -220,7 +218,6 @@ for i, etapa in enumerate(etapas_kanban):
                     key=f"dl_{chapa_val}_{i}"
                 )
             with c_btn2:
-                # Botão para simular nova falta e mover o card para a próxima coluna automaticamente
                 if st.button("➕ Reg. Falta", key=f"add_{chapa_val}_{i}"):
                     st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "TOTAL_FALTAS"] += 1
                     st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "DATA_MEDIDA"] = datetime.now().strftime("%d/%m/%Y")

@@ -82,145 +82,144 @@ def classificar_etapa(total_faltas):
 df["ETAPA"] = df["TOTAL_FALTAS"].apply(classificar_etapa)
 
 # ---------------------------------------------------------
-# TRATAMENTO DE TEXTO PARA ACOMPANHAR O PADRÃO FPDF
+# TRATAMENTO DE TEXTO
 # ---------------------------------------------------------
 def limpar(texto):
     return str(texto).encode('latin-1', 'replace').decode('latin-1')
 
 # ---------------------------------------------------------
-# GERADOR DE PDF IDÊNTICO AOS MODELOS OFICIAIS DA ELLENCO
+# GERADOR DE PDF FIEL COM CAIXAS E RODAPÉ OFICIAL DA ELLENCO
 # ---------------------------------------------------------
-def gerar_pdf_identico_ellenco(nome, chapa, cargo, obra, total_faltas, data_1, data_2, data_3):
+def gerar_pdf_perfeito_ellenco(nome, chapa, cargo, obra, total_faltas, data_1, data_2, data_3):
     pdf = FPDF(unit="mm", format="A4")
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
     
     nc = limpar(nome)
     cc = limpar(cargo)
     oc = limpar(obra)
     
-    # Cabeçalho Oficial
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 6, "Ellenco", 0, 1, "L")
-    pdf.ln(4)
+    # 1. Cabeçalho Superior
+    pdf.set_font("Arial", "B", 16)
+    pdf.set_text_color(20, 40, 110) # Azul Ellenco
+    pdf.cell(130, 8, "", 0, 0)
+    pdf.cell(50, 8, "Ellenco", 0, 1, "R")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(2)
     
-    # Título do Documento Exato Conforme os PDFs Oficiais
-    pdf.set_font("Arial", "B", 12)
+    # Caixa do Título Principal
+    pdf.set_font("Arial", "B", 11)
+    pdf.rect(10, 20, 190, 8)
     if total_faltas == 1:
-        pdf.cell(0, 6, "CARTA DE ADVERTÊNCIA DISCIPLINAR", 0, 1, "C")
+        pdf.set_xy(10, 21)
+        pdf.cell(190, 6, "CARTA DE ADVERTÊNCIA DISCIPLINAR", 0, 1, "C")
     elif total_faltas == 2:
-        pdf.cell(0, 6, "CARTA DE SUSPENSÃO DISCIPLINAR", 0, 1, "C")
+        pdf.set_xy(10, 21)
+        pdf.cell(190, 6, "CARTA DE SUSPENSÃO DISCIPLINAR", 0, 1, "C")
     elif total_faltas == 3:
-        pdf.cell(0, 6, "CARTA DE SUSPENSÃO DISCIPLINAR", 0, 1, "C")
+        pdf.set_xy(10, 21)
+        pdf.cell(190, 6, "CARTA DE SUSPENSÃO DISCIPLINAR", 0, 1, "C")
     else:
-        pdf.cell(0, 6, "ENCAMINHAMENTO AO DEPARTAMENTO JURÍDICO", 0, 1, "C")
+        pdf.set_xy(10, 21)
+        pdf.cell(190, 6, "ENCAMINHAMENTO AO DEPARTAMENTO JURÍDICO", 0, 1, "C")
+        
     pdf.ln(4)
     
-    # Identificação do Colaborador (Linha idêntica aos modelos)
-    pdf.set_font("Arial", "B", 10)
-    pdf.cell(0, 5, limpar(f"Ilmo(a) Sr(a): {nc}, ocupante do cargo de {cc} da obra {oc}"), 0, 1, "L")
+    # 2. Caixa do Texto Principal
+    pdf.rect(10, 30, 190, 105)
+    pdf.set_xy(12, 32)
     
-    pdf.set_font("Arial", "B", 10)
+    pdf.set_font("Arial", "B", 9.5)
+    pdf.cell(0, 5, limpar(f"Ilmo(a) Sr(a): {nc}, ocupante do cargo de {cc} da obra {oc}"), 0, 1, "L")
+    pdf.set_x(12)
+    
     if total_faltas == 1:
         pdf.cell(0, 5, "Referente: 1ª FALTA INJUSTIFICADA ISOLADA", 0, 1, "L")
-    elif total_faltas == 2:
-        pdf.cell(0, 5, "Referente: Aplicação de Suspensão Disciplinar", 0, 1, "L")
-    elif total_faltas == 3:
-        pdf.cell(0, 5, "Referente: Aplicação de Suspensão Disciplinar Agravada", 0, 1, "L")
-    else:
-        pdf.cell(0, 5, "Referente: Reincidência Habitual e Justa Causa", 0, 1, "L")
-    pdf.ln(5)
-    
-    # Corpo do Texto Exato dos Modelos Oficiais
-    pdf.set_font("Arial", "", 10)
-    
-    if total_faltas == 1:
+        pdf.ln(2)
         d1 = str(data_1) if pd.notna(data_1) else "28/09/2026"
         texto = (
             f"A empresa Ellenco Construções registra, por meio deste documento, a aplicação de ADVERTÊNCIA DISCIPLINAR, "
-            f"em razão de ausência injustificada ao trabalho[cite: 13].\n\n"
+            f"em razão de ausência injustificada ao trabalho.\n\n"
             f"Conforme registros de frequência, foi constatada a ausência do empregado no dia {d1} sem que houvesse "
-            f"apresentação de justificativa legalmente válida ou documento apto a justificar a ausência[cite: 13].\n\n"
+            f"apresentação de justificativa legalmente válida ou documento apto a justificar a ausência.\n\n"
             f"A referida ausência ocasionou o não cumprimento da jornada de trabalho prevista para a respectiva data, em "
-            f"desacordo com as obrigações decorrentes do contrato de trabalho e das normas internas da empresa[cite: 13].\n\n"
+            f"desacordo com as obrigações decorrentes do contrato de trabalho e das normas internas da empresa.\n\n"
             f"Registra-se que, até o momento da aplicação desta penalidade, não foi apresentada justificativa legal capaz de "
-            f"afastar a caracterização da falta[cite: 13].\n\n"
+            f"afastar a caracterização da falta.\n\n"
             f"Diante do ocorrido, a empresa aplica a presente ADVERTÊNCIA DISCIPLINAR, de caráter pedagógico, para que "
-            f"o(a) empregado(a) observe rigorosamente sua jornada de trabalho e comunique previamente à empresa eventual "
-            f"impossibilidade de comparecimento, apresentando, quando cabível, a respectiva justificativa[cite: 13].\n\n"
+            f"o(a) empregado(a) observe rigorosamente sua jornada de trabalho.\n\n"
             f"Fica o empregado ciente de que a repetição de faltas injustificadas poderá ensejar a adoção de medidas "
-            f"disciplinares mais severas, de acordo com a gravidade e a reiteração da conduta, inclusive suspensão disciplinar e, "
-            f"em situações que assim o justifiquem, a rescisão do contrato por justa causa, nos termos do art. 482 da CLT[cite: 13]."
+            f"disciplinares mais severas, inclusive suspensão disciplinar e rescisão do contrato por justa causa, nos termos do art. 482 da CLT."
         )
     elif total_faltas == 2:
+        pdf.cell(0, 5, "Referente: Aplicação de Suspensão Disciplinar", 0, 1, "L")
+        pdf.ln(2)
         d_atual = str(data_2) if pd.notna(data_2) else "25/09/2026"
         d_ant = str(data_1) if pd.notna(data_1) else "18/09/2026"
         texto = (
             f"A empresa Ellenco Construções aplica, por meio deste documento, a penalidade de SUSPENSÃO DISCIPLINAR "
-            f"pelo período de 1 dia útil, em razão da reincidência reiterada em faltas injustificadas ao trabalho[cite: 12].\n\n"
-            f"Foi constatada a ausência do empregado nos dias {d_atual}, sem apresentação de justificativa legal válida[cite: 12].\n\n"
+            f"pelo período de 1 dia útil, em razão da reincidência reiterada em faltas injustificadas ao trabalho.\n\n"
+            f"Foi constatada a ausência do empregado no dia {d_atual}, sem apresentação de justificativa legal válida.\n\n"
             f"Registra-se que o empregado já havia sido penalizado anteriormente com ADVERTÊNCIA DISCIPLINAR, aplicada "
-            f"em {d_ant}, em razão de falta injustificada ocorrida[cite: 12].\n\n"
-            f"Apesar da orientação e da penalidade anteriormente aplicada, houve nova ocorrência de ausência injustificada, "
-            f"demonstrando a repetição da conduta[cite: 12].\n\n"
+            f"em {d_ant}, em razão de falta injustificada anterior.\n\n"
+            f"Apesar da orientação e da penalidade anteriormente aplicada, houve nova ocorrência de ausência injustificada.\n\n"
             f"Diante da reincidência, fica aplicada a presente SUSPENSÃO DISCIPLINAR, pelo período de 1 dia útil, "
-            f"sem prejuízo dos efeitos legais decorrentes da suspensão[cite: 12].\n\n"
-            f"O empregado fica formalmente advertido de que a repetição de faltas injustificadas poderá resultar na aplicação de "
-            f"penalidades disciplinares mais severas, inclusive suspensão por período superior e rescisão do contrato por justa causa[cite: 12]."
+            f"com afastamento das atividades, sem prejuízo dos efeitos legais.\n\n"
+            f"O empregado fica formalmente advertido de que a repetição poderá resultar em rescisão do contrato por justa causa."
         )
     elif total_faltas == 3:
+        pdf.cell(0, 5, "Referente: Aplicação de Suspensão Disciplinar Agravada", 0, 1, "L")
+        pdf.ln(2)
         d3 = str(data_3) if pd.notna(data_3) else "15/09/2026"
         d1 = str(data_1) if pd.notna(data_1) else "20/07/2026"
         d2 = str(data_2) if pd.notna(data_2) else "03/09/2026"
         texto = (
             f"A empresa Ellenco Construções aplica, por meio deste documento, a penalidade de SUSPENSÃO DISCIPLINAR AGRAVADA "
-            f"pelo período de 3 dias úteis, em razão da reincidência reiterada em faltas injustificadas ao trabalho[cite: 11].\n\n"
-            f"Conforme registros de frequência, foi constatada nova ausência injustificada do empregado no dia {d3}, "
-            f"sem apresentação de justificativa legalmente válida[cite: 11].\n\n"
-            f"A presente ocorrência não constitui fato isolado. O empregado já foi anteriormente penalizado por faltas "
-            f"injustificadas, tendo recebido:\n"
-            f"a) Advertência disciplinar, aplicada em {d1}, em razão da ausência anterior; e\n"
-            f"b) Suspensão disciplinar de 1 dia, aplicada em {d2}, em razão da ausência anterior[cite: 11].\n\n"
-            f"Mesmo após as medidas disciplinares anteriormente aplicadas e a ciência expressa acerca da necessidade de "
-            f"observância da jornada de trabalho, ocorreu nova falta injustificada[cite: 11].\n\n"
-            f"Diante da persistência da conduta, a empresa aplica a presente SUSPENSÃO DISCIPLINAR DE 3 DIAS ÚTEIS[cite: 11].\n\n"
-            f"O empregado fica expressamente ciente de que a continuidade ou reiteração de faltas injustificadas poderá ensejar "
-            f"a adoção de medida disciplinar máxima, inclusive a rescisão do contrato por justa causa[cite: 11]."
+            f"pelo período de 3 dias úteis, em razão da reincidência reiterada em faltas injustificadas ao trabalho.\n\n"
+            f"Conforme registros de frequência, foi constatada nova ausência injustificada do empregado em {d3}.\n\n"
+            f"O empregado já foi anteriormente penalizado, tendo recebido:\n"
+            f"a) Advertência disciplinar, aplicada em {d1};\n"
+            f"b) Suspensão disciplinar de 1 dia, aplicada em {d2}.\n\n"
+            f"Diante da persistência, aplica-se a SUSPENSÃO DISCIPLINAR DE 3 DIAS ÚTEIS.\n\n"
+            f"O empregado fica ciente de que a continuidade poderá ensejar rescisão por justa causa."
         )
     else:
-        texto = (
-            f"A empresa Ellenco Construções encaminha o presente histórico ao Departamento Jurídico para análise "
-            f"de Rescisão por Justa Causa com base no Artigo 482, alínea 'e' da CLT (Desídia no desempenho das respectivas funções), "
-            f"tendo em vista o esgotamento das sanções pedagógicas anteriores (Advertência, Suspensão de 1 dia e Suspensão Agravada)."
-        )
+        pdf.cell(0, 5, "Referente: Encaminhamento Jurídico - Justa Causa", 0, 1, "L")
+        pdf.ln(2)
+        texto = "Encaminhamento formal ao Departamento Jurídico para análise de Rescisão por Justa Causa (Art. 482, alínea 'e' da CLT)."
 
-    pdf.multi_cell(0, 5, limpar(texto))
-    pdf.ln(5)
+    pdf.set_font("Arial", "", 8.5)
+    pdf.set_x(12)
+    pdf.multi_cell(186, 4.2, limpar(texto))
     
-    # Local e Data exatos do modelo
-    pdf.cell(0, 5, "Sorocaba, SP 02/10/2026", 0, 1, "R")
-    pdf.ln(5)
+    pdf.set_xy(12, 131)
+    pdf.set_font("Arial", "", 9)
+    pdf.cell(186, 5, "Sorocaba, SP 02/10/2026", 0, 1, "R")
+    pdf.cell(186, 5, "ELLENCO", 0, 1, "C")
     
-    # Bloco de Assinaturas (Empregado e Testemunhas exatamente como nos PDFs)
-    pdf.set_font("Arial", "B", 9)
-    pdf.cell(0, 5, limpar(f"ELLENCO                                                                                              {nc}"), 0, 1, "L")
-    pdf.ln(3)
-    pdf.cell(90, 5, "Ciente do(a) Empregado(a):", 0, 0, "L")
-    pdf.cell(0, 5, "", 0, 1, "R")
-    pdf.ln(6)
-    pdf.cell(90, 5, "_______________________________________", 0, 0, "L")
-    pdf.cell(0, 5, "_______________________________________", 0, 1, "R")
-    pdf.cell(90, 5, "Em:", 0, 0, "L")
-    pdf.cell(0, 5, "", 0, 1, "R")
-    pdf.ln(4)
-    pdf.cell(90, 5, "Testemunha 1", 0, 0, "L")
-    pdf.cell(90, 5, "Testemunha 2", 0, 1, "R")
-    pdf.ln(6)
+    # 3. Caixa de Assinaturas e Testemunhas
+    pdf.rect(10, 140, 190, 32)
+    pdf.set_xy(12, 142)
+    pdf.set_font("Arial", "B", 8.5)
+    pdf.cell(95, 5, "Ciente do(a) Empregado(a):", 0, 0, "L")
+    pdf.cell(95, 5, "Em: ____ / ____ / ________.", 0, 1, "L")
+    pdf.ln(8)
     
-    # Transcrição Completa e Fiel do Artigo 482 da CLT no Rodapé
+    pdf.set_font("Arial", "8", 8)
+    pdf.cell(95, 4, "_______________________________________", 0, 0, "L")
+    pdf.cell(95, 4, limpar(f"_______________________________________"), 0, 1, "R")
+    pdf.cell(95, 4, "Testemunha 1", 0, 0, "L")
+    pdf.cell(95, 4, nc, 0, 1, "R")
+    pdf.cell(95, 4, "_______________________________________", 0, 1, "L")
+    pdf.cell(95, 4, "Testemunha 2", 0, 1, "L")
+    
+    # 4. Caixa do Artigo 482 da CLT
+    pdf.rect(10, 174, 190, 48)
+    pdf.set_xy(12, 175)
     pdf.set_font("Arial", "B", 7.5)
-    pdf.cell(0, 3.5, "Para seu conhecimento, transcrevemos abaixo o Artigo 482 da CLT[cite: 11, 12, 13]:", 0, 1)
-    pdf.set_font("Arial", "", 6)
+    pdf.cell(186, 4, "Para seu conhecimento, transcrevemos abaixo o Artigo 482 da CLT:", 0, 1, "L")
+    
+    pdf.set_font("Arial", "", 5.8)
+    pdf.set_x(12)
     clt_text = (
         "Art. 482 Constituem justa causa para rescisão do contrato de trabalho pelo empregador:\n"
         "a) ato de improbidade; (desonestidade, fraude, mau caráter)\n"
@@ -234,10 +233,23 @@ def gerar_pdf_identico_ellenco(nome, chapa, cargo, obra, total_faltas, data_1, d
         "i) abandono de emprego;\n"
         "j) ato lesivo da honra ou da boa fama praticado no serviço contra qualquer pessoa, ou ofensas físicas, nas mesmas condições, salvo em caso de legítima defesa, própria ou de outrem;\n"
         "k) ato lesivo da honra ou da boa fama ou ofensas físicas praticadas contra o empregador e superiores hierárquicos, salvo em caso de legítima defesa, própria ou de outrem;\n"
-        "l) prática constante de jogos de azar."
+        "l) prática constante de jogos de azar.\n"
+        "Parágrafo único - Constitui igualmente justa causa para dispensa de emprego a prática, devidamente comprovada em inquérito administrativo, de atos atentatórios contra a segurança nacional."
     )
-    pdf.multi_cell(0, 2.5, limpar(clt_text))
+    pdf.multi_cell(186, 2.5, limpar(clt_text))
     
+    # 5. Rodapé Institucional com Endereços Oficiais
+    pdf.set_xy(10, 224)
+    pdf.set_font("Arial", "7", 6)
+    pdf.cell(95, 3, "Av. Antônio Bardella, 3 444 - Iporanga - Distrito Industrial", 0, 0, "L")
+    pdf.cell(95, 3, "Av. Roberto Simonsen, 47 - Santa Rosália", 0, 1, "R")
+    pdf.set_x(10)
+    pdf.cell(95, 3, "CEP 18085-852 - Sorocaba - SP", 0, 0, "L")
+    pdf.cell(95, 3, "CEP 18090-000 - Sorocaba - SP", 0, 1, "R")
+    pdf.set_x(10)
+    pdf.cell(95, 3, "Fone/Fax: (15) 3238 4300", 0, 0, "L")
+    pdf.cell(95, 3, "Fone: (15) 3331 6880 / Fax: (15) 3331 6900                   www.ellenco.com.br", 0, 1, "R")
+
     res = pdf.output(dest='S')
     return res.encode('latin1') if isinstance(res, str) else bytes(res)
 
@@ -316,7 +328,7 @@ for i, etapa in enumerate(etapas_kanban):
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            pdf_bytes = gerar_pdf_identico_ellenco(
+            pdf_bytes = gerar_pdf_perfeito_ellenco(
                 nome=str(row['FUNCIONARIO']),
                 chapa=str(chapa_val),
                 cargo=str(row.get('CARGO', '-')),

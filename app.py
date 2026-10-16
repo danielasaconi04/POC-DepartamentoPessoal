@@ -17,30 +17,28 @@ st.markdown("""
     .card-kanban-solido {
         border-radius: 8px;
         padding: 12px 14px;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
         box-shadow: 0 3px 6px rgba(0,0,0,0.2);
         color: #ffffff !important;
         font-family: sans-serif;
     }
     .card-nome-solido {
         font-weight: 800;
-        font-size: 14px;
+        font-size: 15px;
         margin-bottom: 4px;
         color: #ffffff !important;
-        text-shadow: 0px 1px 2px rgba(0,0,0,0.3);
     }
     .card-detalhe-solido {
-        font-size: 11px;
-        margin-bottom: 2px;
+        font-size: 12px;
+        margin-bottom: 3px;
         color: #ffffff !important;
-        opacity: 0.95;
     }
     .card-tag-obra-solida {
         display: inline-block;
         background-color: rgba(0, 0, 0, 0.25);
-        padding: 2px 6px;
+        padding: 3px 8px;
         border-radius: 4px;
-        font-size: 10px;
+        font-size: 11px;
         font-weight: bold;
         margin-top: 4px;
         color: #ffffff !important;
@@ -52,28 +50,30 @@ st.markdown("""
 st.title("🏗️ Ellenco Construções - Gestão Disciplinar DP")
 
 # ---------------------------------------------------------
-# LEITURA DA PLANILHA (WF0031.xlsx)
+# CARREGAMENTO E GERENCIAMENTO DE ESTADO (SESSION STATE)
 # ---------------------------------------------------------
 @st.cache_data
-def carregar_dados():
+def carregar_dados_iniciais():
     try:
-        df = pd.read_excel("WF0031.xlsx", sheet_name="Exportار Planilha" if "Exportar Planilha" in pd.ExcelFile("WF0031.xlsx").sheet_names else 0)
+        df = pd.read_excel("WF0031.xlsx", sheet_name="Exportar Planilha")
         return df
     except Exception as e:
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 1},
-            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 2}
+            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 2},
+            {"CHAPA": 3, "FUNCIONARIO": "DANILO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 3}
         ])
 
-df = carregar_dados()
+if "df_dados" not in st.session_state:
+    df_temp = carregar_dados_iniciais()
+    if "DATA_MEDIDA" not in df_temp.columns:
+        df_temp["DATA_MEDIDA"] = datetime.now().strftime("%d/%m/%Y")
+    st.session_state.df_dados = df_temp
 
-# Simulação de data de envio da medida para demonstração (Caso não exista na planilha)
-if "DATA_ENVIO" not in df.columns:
-    df["DATA_ENVIO"] = "02/10/2026"
+df = st.session_state.df_dados
 
-# Mapeia as etapas do processo disciplinar conforme reincidência
-def classificar_etapa(row):
-    total_faltas = row["TOTAL_FALTAS"]
+# Classificação automática do Kanban
+def classificar_etapa(total_faltas):
     if total_faltas == 1:
         return "1ª Falta (Advertência)"
     elif total_faltas == 2:
@@ -83,68 +83,58 @@ def classificar_etapa(row):
     else:
         return "4ª Falta (Análise Jurídico / Justa Causa)"
 
-df["ETAPA"] = df.apply(classificar_etapa, axis=1)
+df["ETAPA"] = df["TOTAL_FALTAS"].apply(classificar_etapa)
 
 # ---------------------------------------------------------
-# FUNÇÃO PARA GERAR O PDF OFICIAL DA ELLENCO
+# GERADOR DE PDF DAS MINUTAS OFICIAIS ELLENCO
 # ---------------------------------------------------------
-def gerar_pdf_documento(nome, chapa, cargo, obra, etapa, data_envio):
+def gerar_pdf_medida(nome, chapa, cargo, obra, etapa, data_envio):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 14)
-    
-    # Cabeçalho
-    pdf.cell(0, 10, "ELLENCO CONSTRUÇÕES - DEPARTAMENTO PESSOAL", 0, 1, "C")
+    pdf.cell(0, 10, "ELLENCO CONSTRUÇÕES", 0, 1, "C")
     pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, 8, f"DOCUMENTO DISCIPLINAR: {etapa.upper()}", 0, 1, "C")
+    pdf.cell(0, 8, f"CARTA DE MEDIDA DISCIPLINAR: {etapa.upper()}", 0, 1, "C")
     pdf.ln(5)
     
-    # Dados do Colaborador
     pdf.set_font("Arial", "", 10)
-    pdf.cell(0, 6, f"Colaborador(a): {nome} (Chapa: {chapa})", 0, 1)
+    pdf.cell(0, 6, f"Ilmo(a) Sr(a): {nome} (Chapa: {chapa})", 0, 1)
     pdf.cell(0, 6, f"Cargo: {cargo} | Obra/Seção: {obra}", 0, 1)
-    pdf.cell(0, 6, f"Data de Emissão / Envio: {data_envio}", 0, 1)
-    pdf.ln(10)
+    pdf.cell(0, 6, f"Data de Emissão: {data_envio}", 0, 1)
+    pdf.ln(8)
     
-    # Corpo do Texto
-    pdf.set_font("Arial", "", 10)
-    texto_corpo = (
-        f"A empresa Ellenco Construções registra por meio deste documento a medida disciplinar "
-        f"correspondente a '{etapa}', aplicada em decorrência de ausências injustificadas ao trabalho. "
-        f"O(a) colaborador(a) fica ciente de que o cumprimento rigoroso da jornada de trabalho é dever contratual "
-        f"e que a reiteração da conduta poderá resultar em sanções mais severas, inclusive rescisão por justa causa "
-        f"nos termos do Artigo 482 da CLT."
+    texto = (
+        f"A empresa Ellenco Construções aplica, por meio deste documento, a penalidade correspondente a {etapa}, "
+        f"em razão de ausência(s) injustificada(s) ao trabalho. "
+        f"O colaborador fica advertido de que a reincidência em faltas injustificadas poderá ensejar a adoção "
+        f"de medidas mais severas, inclusive a rescisão por justa causa nos termos do Art. 482 da CLT."
     )
-    pdf.multi_cell(0, 6, texto_corpo)
+    pdf.multi_cell(0, 6, texto)
     pdf.ln(10)
     
-    # Rodapé Legal Art. 482 CLT
     pdf.set_font("Arial", "I", 8)
-    pdf.multi_cell(0, 5, "Referência legal: Art. 482 da CLT (Desídia no desempenho das respectivas funções, indisciplina, insubordinação, etc.).")
+    pdf.multi_cell(0, 5, "Transcrição legal: Artigo 482 da CLT - Constituem justa causa para rescisão do contrato de trabalho pelo empregador: e) desídia no desempenho das respectivas funções; h) ato de indisciplina ou insubordinação.")
     
     return pdf.output(dest="S").encode("latin1")
 
 # ---------------------------------------------------------
-# PALETA DE CORES VIBRANTES POR OBRA
+# CORES POR OBRA
 # ---------------------------------------------------------
-PALETA_CORES_VIBRANTES = {
+PALETA = {
     "DER/SP - TATUI": "#FF7A6C",
     "CCR - SÃO ROQUE": "#FFA500",
     "DER/PR - PARANÁ": "#4CAF50",
     "CONSERVA": "#2196F3",
-    "SAO ROQUE/SP": "#9C27B0",
-    "SAO ROQUE": "#00BCD4"
+    "SAO ROQUE/SP": "#9C27B0"
 }
-CORES_RESERVA = ["#FF7A6C", "#FFA500", "#4CAF50", "#2196F3", "#9C27B0", "#00BCD4", "#E91E63", "#3F51B5"]
+RESERVA = ["#FF7A6C", "#FFA500", "#4CAF50", "#2196F3", "#9C27B0", "#00BCD4"]
 
 def obter_cor(obra):
-    obra_str = str(obra).strip()
-    if obra_str in PALETA_CORES_VIBRANTES:
-        return PALETA_CORES_VIBRANTES[obra_str]
-    return CORES_RESERVA[abs(hash(obra_str)) % len(CORES_RESERVA)]
+    o = str(obra).strip()
+    return PALETA.get(o, RESERVA[abs(hash(o)) % len(RESERVA)])
 
 # ---------------------------------------------------------
-# BARRA LATERAL - FILTROS
+# FILTROS LATERAIS
 # ---------------------------------------------------------
 st.sidebar.header("🔍 Filtros de Pesquisa")
 busca_texto = st.sidebar.text_input("Pesquisar Colaborador / Chapa", "")
@@ -168,9 +158,9 @@ if filtro_cargo:
     df_filtrado = df_filtrado[df_filtrado["CARGO"].astype(str).isin(filtro_cargo)]
 
 # ---------------------------------------------------------
-# QUADRO KANBAN
+# KANBAN OPERACIONAL
 # ---------------------------------------------------------
-st.markdown("### 📊 Quadro Kanban Operacional (Janela de 12 Meses)")
+st.markdown("### 📊 Quadro Kanban Operacional")
 
 etapas_kanban = [
     "1ª Falta (Advertência)",
@@ -184,44 +174,69 @@ cols = st.columns(4)
 for i, etapa in enumerate(etapas_kanban):
     with cols[i]:
         df_etapa = df_filtrado[df_filtrado["ETAPA"] == etapa]
+        
         st.subheader(f"{etapa}")
-        st.caption(f"👥 Total: **{len(df_etapa)}**")
+        st.caption(f"👥 Total: **{len(df_etapa)}** colaborador(es)")
         st.markdown("---")
         
         if df_etapa.empty:
-            st.info("Nenhum registro.")
+            st.info("Nenhum colaborador nesta etapa.")
         
-        for _, row in df_etapa.iterrows():
+        for idx_row, row in df_etapa.iterrows():
             obra_nome = str(row.get("SECAO", "-")).strip()
             cor_fundo = obter_cor(obra_nome)
-            data_envio = row.get("DATA_ENVIO", "2026-10-02")
+            chapa_val = row["CHAPA"]
+            data_medida = row.get("DATA_MEDIDA", datetime.now().strftime("%d/%m/%Y"))
             
-            # HTML do cartão exibindo nome, chapa, faltas e a data do envio da medida
+            # 1. Encarte Visual Colorido
             card_html = f"""
             <div class="card-kanban-solido" style="background-color: {cor_fundo};">
                 <div class="card-nome-solido">👤 {row['FUNCIONARIO']}</div>
-                <div class="card-detalhe-solido">🔢 <b>Chapa:</b> {row['CHAPA']} | <b>Faltas:</b> {row['TOTAL_FALTAS']}</div>
+                <div class="card-detalhe-solido">🔢 <b>Chapa:</b> {chapa_val} | <b>Total Faltas:</b> {row['TOTAL_FALTAS']}</div>
                 <div class="card-detalhe-solido">💼 <b>Cargo:</b> {row.get('CARGO', '-')}</div>
-                <div class="card-detalhe-solido">📅 <b>Envio da Medida:</b> {data_envio}</div>
+                <div class="card-detalhe-solido">📅 <b>Data da Medida:</b> {data_medida}</div>
                 <div class="card-tag-obra-solida">🏗️ {obra_nome}</div>
             </div>
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            # Botão de Download do PDF gerado automaticamente dentro do encarte
-            pdf_bytes = gerar_pdf_documento(
+            # 2. Botão de Download do PDF Gerado
+            pdf_data = gerar_pdf_medida(
                 nome=row['FUNCIONARIO'],
-                chapa=row['CHAPA'],
+                chapa=chapa_val,
                 cargo=row.get('CARGO', '-'),
                 obra=obra_nome,
                 etapa=etapa,
-                data_envio=str(data_envio)
+                data_envio=str(data_medida)
             )
-            st.download_button(
-                label=f"📥 Baixar PDF ({row['CHAPA']})",
-                data=pdf_bytes,
-                file_name=f"Medida_Disciplinar_Chapa_{row['CHAPA']}.pdf",
-                mime="application/pdf",
-                key=f"pdf_{row['CHAPA']}_{i}"
-            )
-            st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
+            
+            c_btn1, c_btn2 = st.columns(2)
+            with c_btn1:
+                st.download_button(
+                    label="📄 Baixar PDF",
+                    data=pdf_data,
+                    file_name=f"Medida_Chapa_{chapa_val}.pdf",
+                    mime="application/pdf",
+                    key=f"dl_{chapa_val}_{i}"
+                )
+            with c_btn2:
+                # Botão para simular nova falta e mover o card para a próxima coluna automaticamente
+                if st.button("➕ Reg. Falta", key=f"add_{chapa_val}_{i}"):
+                    st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "TOTAL_FALTAS"] += 1
+                    st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "DATA_MEDIDA"] = datetime.now().strftime("%d/%m/%Y")
+                    st.rerun()
+            
+            st.markdown("<hr style='margin:6px 0 12px 0;'>", unsafe_allow_html=True)
+
+# ---------------------------------------------------------
+# LEGENDA
+# ---------------------------------------------------------
+st.divider()
+st.markdown("##### 🎨 Legenda de Cores por Obra")
+obras_presentes = sorted(df["SECAO"].dropna().astype(str).unique().tolist())
+cols_leg = st.columns(min(len(obras_presentes), 6) if len(obras_presentes) > 0 else 1)
+
+for idx, obra in enumerate(obras_presentes):
+    cor = obter_cor(obra)
+    with cols_leg[idx % len(cols_leg)]:
+        st.markdown(f'<div style="background-color:{cor}; padding:4px; border-radius:4px; text-align:center; color:white; font-weight:bold;"><small>{obra}</small></div>', unsafe_allow_html=True)

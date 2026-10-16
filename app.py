@@ -50,7 +50,7 @@ st.markdown("""
 st.title("🏗️ Ellenco Construções - Gestão Disciplinar DP")
 
 # ---------------------------------------------------------
-# CARREGAMENTO E GERENCIAMENTO DE ESTADO (SESSION STATE)
+# CARREGAMENTO E ESTADO DA APLICAÇÃO
 # ---------------------------------------------------------
 @st.cache_data
 def carregar_dados_iniciais():
@@ -60,8 +60,7 @@ def carregar_dados_iniciais():
     except Exception as e:
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 1},
-            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 2},
-            {"CHAPA": 3, "FUNCIONARIO": "DANILO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "TOTAL_FALTAS": 3}
+            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "TOTAL_FALTAS": 2}
         ])
 
 if "df_dados" not in st.session_state:
@@ -85,40 +84,43 @@ def classificar_etapa(total_faltas):
 df["ETAPA"] = df["TOTAL_FALTAS"].apply(classificar_etapa)
 
 # ---------------------------------------------------------
-# GERADOR DE PDF DAS MINUTAS OFICIAIS ELLENCO (ATUALIZADO)
+# GERADOR DE PDF ROBUSTO (RETORNA BYTES)
 # ---------------------------------------------------------
 def gerar_pdf_medida(nome, chapa, cargo, obra, etapa, data_envio):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "ELLENCO CONSTRUÇÕES", 0, 1, "C")
+    pdf.cell(0, 10, "ELLENCO CONSTRUCOES", 0, 1, "C")
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 8, f"CARTA DE MEDIDA DISCIPLINAR: {etapa.upper()}", 0, 1, "C")
     pdf.ln(5)
     
     pdf.set_font("Arial", "", 10)
     pdf.cell(0, 6, f"Ilmo(a) Sr(a): {nome} (Chapa: {chapa})", 0, 1)
-    pdf.cell(0, 6, f"Cargo: {cargo} | Obra/Seção: {obra}", 0, 1)
-    pdf.cell(0, 6, f"Data de Emissão: {data_envio}", 0, 1)
+    pdf.cell(0, 6, f"Cargo: {cargo} | Obra/Secao: {obra}", 0, 1)
+    pdf.cell(0, 6, f"Data de Emissao: {data_envio}", 0, 1)
     pdf.ln(8)
     
     texto = (
-        f"A empresa Ellenco Construções aplica, por meio deste documento, a penalidade correspondente a {etapa}, "
-        f"em razão de ausência(s) injustificada(s) ao trabalho. "
-        f"O colaborador fica advertido de que a reincidência em faltas injustificadas poderá ensejar a adoção "
-        f"de medidas mais severas, inclusive a rescisão por justa causa nos termos do Art. 482 da CLT."
+        f"A empresa Ellenco Construcoes aplica, por meio deste documento, a penalidade correspondente a {etapa}, "
+        f"em razao de ausencia(s) injustificada(s) ao trabalho. "
+        f"O colaborador fica advertido de que a reincidencia em faltas injustificadas podera ensejar a adocao "
+        f"de medidas mais severas, inclusive a rescisao por justa causa nos termos do Art. 482 da CLT."
     )
     pdf.multi_cell(0, 6, texto)
     pdf.ln(10)
     
     pdf.set_font("Arial", "I", 8)
-    pdf.multi_cell(0, 5, "Transcrição legal: Artigo 482 da CLT - Constituem justa causa para rescisão do contrato de trabalho pelo empregador: e) desídia no desempenho das respectivas funções; h) ato de indisciplina ou insubordinação.")
+    pdf.multi_cell(0, 5, "Transcricao legal: Artigo 482 da CLT - Constituem justa causa para rescisao do contrato de trabalho pelo empregador: e) desidia no desempenho das respectivas funcoes; h) ato de indisciplina ou insubordinacao.")
     
-    # Compatibilidade atualizada com fpdf2
-    return pdf.output()
+    # Garantia de saída como bytes
+    res = pdf.output(dest='S')
+    if isinstance(res, str):
+        return res.encode('latin1')
+    return bytes(res)
 
 # ---------------------------------------------------------
-# CORES POR OBRA
+# PALETA DE CORES POR OBRA
 # ---------------------------------------------------------
 PALETA = {
     "DER/SP - TATUI": "#FF7A6C",
@@ -188,6 +190,7 @@ for i, etapa in enumerate(etapas_kanban):
             chapa_val = row["CHAPA"]
             data_medida = row.get("DATA_MEDIDA", datetime.now().strftime("%d/%m/%Y"))
             
+            # 1. Encarte do Colaborador
             card_html = f"""
             <div class="card-kanban-solido" style="background-color: {cor_fundo};">
                 <div class="card-nome-solido">👤 {row['FUNCIONARIO']}</div>
@@ -199,26 +202,28 @@ for i, etapa in enumerate(etapas_kanban):
             """
             st.markdown(card_html, unsafe_allow_html=True)
             
-            pdf_data = gerar_pdf_medida(
-                nome=row['FUNCIONARIO'],
-                chapa=chapa_val,
-                cargo=row.get('CARGO', '-'),
+            # 2. Gerar arquivo PDF em bytes
+            pdf_bytes = gerar_pdf_medida(
+                nome=str(row['FUNCIONARIO']),
+                chapa=str(chapa_val),
+                cargo=str(row.get('CARGO', '-')),
                 obra=obra_nome,
                 etapa=etapa,
                 data_envio=str(data_medida)
             )
             
+            # 3. Botões operacionais com chaves únicas garantidas
             c_btn1, c_btn2 = st.columns(2)
             with c_btn1:
                 st.download_button(
                     label="📄 Baixar PDF",
-                    data=pdf_data,
+                    data=pdf_bytes,
                     file_name=f"Medida_Chapa_{chapa_val}.pdf",
                     mime="application/pdf",
-                    key=f"dl_{chapa_val}_{i}"
+                    key=f"btn_dl_{chapa_val}_{idx_row}"
                 )
             with c_btn2:
-                if st.button("➕ Reg. Falta", key=f"add_{chapa_val}_{i}"):
+                if st.button("➕ Reg. Falta", key=f"btn_add_{chapa_val}_{idx_row}"):
                     st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "TOTAL_FALTAS"] += 1
                     st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "DATA_MEDIDA"] = datetime.now().strftime("%d/%m/%Y")
                     st.rerun()
@@ -226,7 +231,7 @@ for i, etapa in enumerate(etapas_kanban):
             st.markdown("<hr style='margin:6px 0 12px 0;'>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# LEGENDA
+# LEGENDA DE CORES
 # ---------------------------------------------------------
 st.divider()
 st.markdown("##### 🎨 Legenda de Cores por Obra")

@@ -51,7 +51,6 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0,0,0,0.08);
         color: #2C3333 !important;
         font-family: sans-serif;
-        border-left: 5px solid #A3865E;
     }
     .card-nome-nude {
         font-weight: 700;
@@ -88,7 +87,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# CABEÇALHO EMPRESARIAL COM LOGO/NOME ELLENCO
+# CABEÇALHO EMPRESARIAL COM NOME / LOGO ELLENCO
 # ---------------------------------------------------------
 st.markdown("""
     <div class="header-empresarial">
@@ -110,7 +109,7 @@ def carregar_dados():
     try:
         df = pd.read_excel("WF0031.xlsx", sheet_name="Exportar Planilha")
         return df
-    except Exception as e:
+    except Exception:
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 1},
             {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 2}
@@ -165,44 +164,3 @@ def gerar_pdf_perfeito_ellenco(nome, chapa, cargo, obra, total_faltas, data_1, d
     if total_faltas == 1:
         pdf.cell(190, 6, "CARTA DE ADVERTENCIA DISCIPLINAR", 0, 1, "C")
     elif total_faltas in [2, 3]:
-        pdf.cell(190, 6, "CARTA DE SUSPENSAO DISCIPLINAR", 0, 1, "C")
-    else:
-        pdf.cell(190, 6, "ENCAMINHAMENTO AO DEPARTAMENTO JURIDICO", 0, 1, "C")
-        
-    pdf.ln(4)
-    
-    # Caixa Principal do Texto
-    pdf.rect(10, 30, 190, 105)
-    pdf.set_xy(12, 32)
-    
-    pdf.set_font("Arial", "B", 9.5)
-    pdf.cell(0, 5, limpar(f"Ilmo(a) Sr(a): {nc}, ocupante do cargo de {cc} da obra {oc}"), 0, 1, "L")
-    pdf.set_x(12)
-    
-    if total_faltas == 1:
-        pdf.cell(0, 5, "Referente: 1a FALTA INJUSTIFICADA ISOLADA", 0, 1, "L")
-        pdf.ln(2)
-        d1 = str(data_1) if pd.notna(data_1) else "28/09/2026"
-        p1 = "A empresa Ellenco Construcoes registra, por meio deste documento, a aplicacao de ADVERTENCIA DISCIPLINAR, em razao de ausencia injustificada ao trabalho."
-        p2 = f"Conforme registros de frequencia, foi constatada a ausencia do empregado no dia {d1} sem que houvesse apresentacao de justificativa legalmente valida ou documento apto a justificar a ausencia."
-        p3 = "A referida ausencia ocasionou o nao cumprimento da jornada de trabalho prevista para a respectiva data, em desacordo com as obrigacoes decorrentes do contrato de trabalho e das normas internas da empresa."
-        p4 = "Registra-se que, ate o momento da aplicacao desta penalidade, nao foi apresentada justificativa legal capaz de afastar a caracterizacao da falta."
-        p5 = "Diante do ocorrido, a empresa aplica a presente ADVERTENCIA DISCIPLINAR, de carater pedagogico, para que o(a) empregado(a) observe rigorosamente sua jornada de trabalho e comunique previamente a empresa eventual impossibilidade de comparecimento, apresentando, quando cabivel, a respectiva justificativa."
-        p6 = "Fica o empregado ciente de que a repeticao de faltas injustificadas podera ensejar a adocao de medidas disciplinares mais severas, de acordo com a gravidade e a reiteracao da conduta, inclusive suspensao disciplinar e, em situacoes que assim o justifiquem, a rescisao do contrato por justa causa, nos termos do art. 482 da CLT."
-        texto = p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + p5 + "\n\n" + p6
-    elif total_faltas == 2:
-        pdf.cell(0, 5, "Referente: Aplicacao de Suspensao Disciplinar", 0, 1, "L")
-        pdf.ln(2)
-        d_atual = str(data_2) if pd.notna(data_2) else "25/09/2026"
-        d_ant = str(data_1) if pd.notna(data_1) else "18/09/2026"
-        p1 = "A empresa Ellenco Construcoes aplica, por meio deste documento, a penalidade de SUSPENSAO DISCIPLINAR pelo periodo de 1 dia util, em razao da reincidencia reiterada em faltas injustificadas ao trabalho."
-        p2 = f"Foi constatada a ausencia do empregado nos dias {d_atual}, sem apresentacao de justificativa legal valida."
-        p3 = f"Registra-se que o empregado ja havia sido penalizado anteriormente com ADVERTENCIA DISCIPLINAR, aplicada em {d_ant}, em razao de falta injustificada ocorrida."
-        p4 = "Apesar da orientacao e da penalidade anteriormente aplicada, houve nova ocorrencia de ausencia injustificada, demonstrando a repeticao da conduta."
-        p5 = "Diante da reincidencia, fica aplicada a presente SUSPENSAO DISCIPLINAR, pelo periodo de 1 dia util, sem prejuizo dos efeitos legais decorrentes da suspensao."
-        p6 = "O empregado fica formalmente advertido de que a repeticao de faltas injustificadas podera resultar na aplicacao de penalidades disciplinares mais severas, inclusive suspensao por periodo superior e rescisao do contrato por justa causa."
-        texto = p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + p5 + "\n\n" + p6
-    elif total_faltas == 3:
-        pdf.cell(0, 5, "Referente: Aplicacao de Suspensao Disciplinar Agravada", 0, 1, "L")
-        pdf.ln(2)
-        d3 = str(data_3) if pd.notna(data_3

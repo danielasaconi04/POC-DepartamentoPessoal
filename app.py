@@ -4,50 +4,103 @@ from datetime import datetime
 from fpdf import FPDF
 
 # ---------------------------------------------------------
-# CONFIGURAÇÃO DA PÁGINA
+# CONFIGURAÇÃO DA PÁGINA (LAYOUT EMPRESARIAL / TONS NUDES)
 # ---------------------------------------------------------
-st.set_page_config(page_title="Ellenco - Kanban Disciplinar", layout="wide")
+st.set_page_config(page_title="Ellenco Construções - Gestão Disciplinar", layout="wide")
 
 st.markdown("""
     <style>
+    /* Cores Globais e Fundo Corporativo */
+    .stApp {
+        background-color: #F7F5F0;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
     .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
+        padding-top: 2rem;
+        padding-bottom: 2rem;
     }
-    .card-kanban-solido {
-        border-radius: 8px;
-        padding: 12px 14px;
-        margin-bottom: 8px;
-        box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-        color: #ffffff !important;
+    
+    /* Topo / Header Empresarial */
+    .header-empresarial {
+        background-color: #2C3333;
+        padding: 20px 30px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        border-bottom: 4px solid #A3865E;
+    }
+    .header-titulo {
+        color: #F7F5F0;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+    }
+    .header-sub {
+        color: #C2B6A9;
+        font-size: 13px;
+        margin: 0;
+    }
+    
+    /* Cards do Kanban em Tons Nudes / Sóbrios */
+    .card-kanban-nude {
+        border-radius: 6px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        color: #2C3333 !important;
         font-family: sans-serif;
+        border-left: 5px solid #A3865E;
     }
-    .card-nome-solido {
-        font-weight: 800;
-        font-size: 15px;
-        margin-bottom: 4px;
-        color: #ffffff !important;
+    .card-nome-nude {
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 6px;
+        color: #1A1C1C !important;
     }
-    .card-detalhe-solido {
+    .card-detalhe-nude {
         font-size: 12px;
-        margin-bottom: 3px;
-        color: #ffffff !important;
+        margin-bottom: 4px;
+        color: #3F4444 !important;
     }
-    .card-tag-obra-solida {
+    .card-tag-obra-nude {
         display: inline-block;
-        background-color: rgba(0, 0, 0, 0.25);
+        background-color: rgba(163, 134, 94, 0.15);
+        color: #5C4A32 !important;
         padding: 3px 8px;
         border-radius: 4px;
         font-size: 11px;
         font-weight: bold;
-        margin-top: 4px;
-        color: #ffffff !important;
-        border: 1px solid rgba(255,255,255,0.4);
+        margin-top: 6px;
+        border: 1px solid rgba(163, 134, 94, 0.3);
+    }
+    
+    /* Colunas do Kanban */
+    div[data-testid="column"] {
+        background-color: #FFFFFF;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #E5E0D8;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🏗️ Ellenco Construções - Gestão Disciplinar DP")
+# ---------------------------------------------------------
+# CABEÇALHO EMPRESARIAL COM LOGO/NOME ELLENCO
+# ---------------------------------------------------------
+st.markdown("""
+    <div class="header-empresarial">
+        <div>
+            <p class="header-titulo">🏗️ ELLENCO CONSTRUÇÕES</p>
+            <p class="header-sub">Departamento Pessoal — Gestão Disciplinar Corporativa</p>
+        </div>
+        <div style="text-align: right;">
+            <span style="background-color: #A3865E; color: white; padding: 6px 14px; border-radius: 4px; font-weight: bold; font-size: 12px; letter-spacing: 1px;">PORTAL DP</span>
+        </div>
+    </div>
+""", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # LEITURA DA PLANILHA CORPORATIVA (WF0031.xlsx)
@@ -60,7 +113,7 @@ def carregar_dados():
     except Exception as e:
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 1},
-            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 1}
+            {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 2}
         ])
 
 if "df_dados" not in st.session_state:
@@ -99,7 +152,7 @@ def gerar_pdf_perfeito_ellenco(nome, chapa, cargo, obra, total_faltas, data_1, d
     
     # Cabeçalho Ellenco
     pdf.set_font("Arial", "B", 16)
-    pdf.set_text_color(20, 40, 110)
+    pdf.set_text_color(44, 51, 51)
     pdf.cell(130, 8, "", 0, 0)
     pdf.cell(50, 8, "Ellenco", 0, 1, "R")
     pdf.set_text_color(0, 0, 0)
@@ -152,211 +205,4 @@ def gerar_pdf_perfeito_ellenco(nome, chapa, cargo, obra, total_faltas, data_1, d
     elif total_faltas == 3:
         pdf.cell(0, 5, "Referente: Aplicacao de Suspensao Disciplinar Agravada", 0, 1, "L")
         pdf.ln(2)
-        d3 = str(data_3) if pd.notna(data_3) else "15/09/2026"
-        d1 = str(data_1) if pd.notna(data_1) else "20/07/2026"
-        d2 = str(data_2) if pd.notna(data_2) else "03/09/2026"
-        p1 = "A empresa Ellenco Construcoes aplica, por meio deste documento, a penalidade de SUSPENSAO DISCIPLINAR AGRAVADA pelo periodo de 3 dias uteis, em razao da reincidencia reiterada em faltas injustificadas ao trabalho."
-        p2 = f"Conforme registros de frequencia, foi constatada nova ausencia injustificada do empregado no dia {d3}, sem apresentacao de justificativa legalmente valida."
-        p3 = f"A presente ocorrencia nao constitui fato isolado. O empregado ja foi anteriormente penalizado por faltas injustificadas, tendo recebido:\na) Advertencia disciplinar, aplicada em {d1}, em razao da ausencia anterior; e\nb) Suspensao disciplinar de 1 dia, aplicada em {d2}, em razao da ausencia anterior."
-        p4 = "Mesmo apos as medidas disciplinares anteriormente aplicadas e a ciencia expressa acerca da necessidade de observancia da jornada de trabalho, ocorreu nova falta injustificada."
-        p5 = "Diante da persistencia da conduta, a empresa aplica a presente SUSPENSAO DISCIPLINAR DE 3 DIAS UTEIS."
-        p6 = "O empregado fica expressamente ciente de que a continuidade ou reiteracao de faltas injustificadas podera ensejar a adocao de medida disciplinar maxima, inclusive a rescisao do contrato por justa causa."
-        texto = p1 + "\n\n" + p2 + "\n\n" + p3 + "\n\n" + p4 + "\n\n" + p5 + "\n\n" + p6
-    else:
-        pdf.cell(0, 5, "Referente: Encaminhamento Juridico - Justa Causa", 0, 1, "L")
-        pdf.ln(2)
-        texto = "Encaminhamento formal ao Departamento Juridico para analise de Rescisao por Justa Causa com base no Art. 482, alinea 'e' da CLT."
-
-    pdf.set_font("Arial", "", 8.5)
-    pdf.set_x(12)
-    pdf.multi_cell(186, 4.2, limpar(texto))
-    
-    pdf.set_xy(12, 131)
-    pdf.set_font("Arial", "", 9)
-    pdf.cell(186, 5, "Sorocaba, SP 02/10/2026", 0, 1, "R")
-    pdf.cell(186, 5, "ELLENCO", 0, 1, "C")
-    
-    # Caixa de Assinaturas
-    pdf.rect(10, 140, 190, 32)
-    pdf.set_xy(12, 142)
-    pdf.set_font("Arial", "B", 8.5)
-    pdf.cell(95, 5, "Ciente do(a) Empregado(a):", 0, 0, "L")
-    pdf.cell(95, 5, "Em: ____ / ____ / ________.", 0, 1, "L")
-    pdf.ln(6)
-    
-    pdf.set_font("Arial", "", 8)
-    pdf.cell(95, 4, "_______________________________________", 0, 0, "L")
-    pdf.cell(95, 4, "_______________________________________", 0, 1, "R")
-    pdf.cell(95, 4, "Testemunha 1", 0, 0, "L")
-    pdf.cell(95, 4, nc, 0, 1, "R")
-    pdf.cell(95, 4, "_______________________________________", 0, 1, "L")
-    pdf.cell(95, 4, "Testemunha 2", 0, 1, "L")
-    
-    # Caixa do Artigo 482 da CLT
-    pdf.rect(10, 174, 190, 48)
-    pdf.set_xy(12, 175)
-    pdf.set_font("Arial", "B", 7.5)
-    pdf.cell(186, 4, "Para seu conhecimento, transcrevemos abaixo o Artigo 482 da CLT:", 0, 1, "L")
-    
-    pdf.set_font("Arial", "", 5.8)
-    pdf.set_x(12)
-    clt_text = (
-        "Art. 482 Constituem justa causa para rescisao do contrato de trabalho pelo empregador:\n"
-        "a) ato de improbidade; (desonestidade, fraude, mau carater)\n"
-        "b) incontinencia de conduta ou mau procedimento; (conduta incabivel)\n"
-        "c) negociacao habitual por conta propria ou alheia sem permissao do empregador, quando constituir ato de concorrencia a empresa para a qual trabalha o empregado, ou for prejudicial ao servico;\n"
-        "d) condenacao criminal do empregado, passada em julgado, caso nao tenha havido suspensao da execucao da pena;\n"
-        "e) desidia no desempenho das respectivas funcoes;\n"
-        "f) embriaguez habitual ou em servico;\n"
-        "g) violacao de segredo da empresa;\n"
-        "h) ato de indisciplina ou de insubordinacao;\n"
-        "i) abandono de emprego;\n"
-        "j) ato lesivo da honra ou da boa fama praticado no servico contra qualquer pessoa, ou ofensas fisicas, nas mesmas condicoes, salvo em caso de legitima defesa, propria ou de outrem;\n"
-        "k) ato lesivo da honra ou da boa fama ou ofensas fisicas praticadas contra o empregador e superiores hierarquicos, salvo em caso de legitima defesa, propria ou de outrem;\n"
-        "l) pratica constante de jogos de azar.\n"
-        "Paragrafo unico - Constitui igualmente justa causa para dispensa de emprego a pratica, devidamente comprovada em inquerito administrativo, de atos atentatorios contra a seguranca nacional."
-    )
-    pdf.multi_cell(186, 2.5, limpar(clt_text))
-    
-    # Rodapé Institucional com Endereços Oficiais
-    pdf.set_xy(10, 224)
-    pdf.set_font("Arial", "", 6)
-    pdf.cell(95, 3, "Av. Antonio Bardella, 3 444 - Iporanga - Distrito Industrial", 0, 0, "L")
-    pdf.cell(95, 3, "Av. Roberto Simonsen, 47 - Santa Rosalia", 0, 1, "R")
-    pdf.set_x(10)
-    pdf.cell(95, 3, "CEP 18085-852 - Sorocaba - SP", 0, 0, "L")
-    pdf.cell(95, 3, "CEP 18090-000 - Sorocaba - SP", 0, 1, "R")
-    pdf.set_x(10)
-    pdf.cell(95, 3, "Fone/Fax: (15) 3238 4300", 0, 0, "L")
-    pdf.cell(95, 3, "Fone: (15) 3331 6880 / Fax: (15) 3331 6900                   www.ellenco.com.br", 0, 1, "R")
-
-    res = pdf.output(dest='S')
-    return res.encode('latin1') if isinstance(res, str) else bytes(res)
-
-# ---------------------------------------------------------
-# PALETA DE CORES POR OBRA
-# ---------------------------------------------------------
-PALETA = {
-    "DER/SP - TATUI": "#FF7A6C",
-    "CCR - SÃO ROQUE": "#FFA500",
-    "DER/PR - PARANÁ": "#4CAF50",
-    "CONSERVA": "#2196F3",
-    "SAO ROQUE/SP": "#9C27B0",
-    "SAO ROQUE": "#00BCD4"
-}
-
-CORES_RESERVA = ["#FF7A6C", "#FFA500", "#4CAF50", "#2196F3", "#9C27B0", "#00BCD4", "#E91E63", "#3F51B5"]
-
-def obter_cor(obra):
-    o = str(obra).strip()
-    if o in PALETA:
-        return PALETA[o]
-    return CORES_RESERVA[abs(hash(o)) % len(CORES_RESERVA)]
-
-# ---------------------------------------------------------
-# BARRA LATERAL - FILTROS DE PESQUISA
-# ---------------------------------------------------------
-st.sidebar.header("🔍 Filtros de Pesquisa")
-busca_texto = st.sidebar.text_input("Pesquisar Colaborador / Chapa", "")
-
-secoes_disp = sorted(df["SECAO"].dropna().astype(str).unique().tolist())
-filtro_secao = st.sidebar.multiselect("Filtrar por Obra / Seção", options=secoes_disp, default=secoes_disp)
-
-cargos_disp = sorted(df["CARGO"].dropna().astype(str).unique().tolist())
-filtro_cargo = st.sidebar.multiselect("Filtrar por Cargo", options=cargos_disp, default=cargos_disp)
-
-df_f = df.copy()
-
-if busca_texto:
-    b_up = busca_texto.upper()
-    df_f = df_f[
-        df_f["FUNCIONARIO"].astype(str).str.upper().str.contains(b_up, na=False) |
-        df_f["CHAPA"].astype(str).str.contains(b_up, na=False)
-    ]
-
-if filtro_secao:
-    df_f = df_f[df_f["SECAO"].astype(str).isin(filtro_secao)]
-
-if filtro_cargo:
-    df_f = df_f[df_f["CARGO"].astype(str).isin(filtro_cargo)]
-
-# ---------------------------------------------------------
-# QUADRO KANBAN OPERACIONAL
-# ---------------------------------------------------------
-st.markdown("### 📊 Quadro Kanban Operacional")
-
-cols = st.columns(4)
-etapas_kanban = [
-    "1ª Falta (Advertência)",
-    "2ª Falta (Suspensão 1 a 2 dias)",
-    "3ª Falta (Suspensão Agravada 3 a 5 dias)",
-    "4ª Falta (Análise Jurídico / Justa Causa)"
-]
-
-for i, etapa in enumerate(etapas_kanban):
-    with cols[i]:
-        dfe = df_f[df_f["ETAPA"] == etapa]
-        st.subheader(etapa)
-        st.caption(f"Total: {len(dfe)} colaborador(es)")
-        st.markdown("---")
-        
-        if dfe.empty:
-            st.info("Nenhum colaborador nesta etapa.")
-        
-        for idx_row, row in dfe.iterrows():
-            obra_nome = str(row.get("SECAO", "-")).strip()
-            cor_fundo = obter_cor(obra_nome)
-            chapa_val = row["CHAPA"]
-            total_f = int(row["TOTAL_FALTAS"])
-            d_falta = str(row.get("DATA_1", "28/09/2026"))
-            
-            card_html = f"""
-            <div class="card-kanban-solido" style="background-color: {cor_fundo};">
-                <div class="card-nome-solido">👤 {row['FUNCIONARIO']}</div>
-                <div class="card-detalhe-solido">🔢 <b>Chapa:</b> {chapa_val} | <b>Faltas:</b> {total_f}</div>
-                <div class="card-detalhe-solido">💼 <b>Cargo:</b> {row.get('CARGO', '-')}</div>
-                <div class="card-detalhe-solido">📅 <b>Data:</b> {d_falta}</div>
-                <div class="card-tag-obra-solida">🏗️ {obra_nome}</div>
-            </div>
-            """
-            st.markdown(card_html, unsafe_allow_html=True)
-            
-            pdf_bytes = gerar_pdf_perfeito_ellenco(
-                nome=str(row['FUNCIONARIO']),
-                chapa=str(chapa_val),
-                cargo=str(row.get('CARGO', '-')),
-                obra=obra_nome,
-                total_faltas=total_f,
-                data_1=row.get('DATA_1'),
-                data_2=row.get('DATA_2'),
-                data_3=row.get('DATA_3')
-            )
-            
-            c_btn1, c_btn2 = st.columns(2)
-            with c_btn1:
-                st.download_button(
-                    label="📄 Baixar PDF",
-                    data=pdf_bytes,
-                    file_name=f"Medida_Chapa_{chapa_val}.pdf",
-                    mime="application/pdf",
-                    key=f"dl_{chapa_val}_{idx_row}"
-                )
-            with c_btn2:
-                if st.button("➕ Reg. Falta", key=f"add_{chapa_val}_{idx_row}"):
-                    st.session_state.df_dados.loc[st.session_state.df_dados["CHAPA"] == chapa_val, "TOTAL_FALTAS"] += 1
-                    st.rerun()
-            
-            st.markdown("<hr style='margin:4px 0 10px 0;'>", unsafe_allow_html=True)
-
-# ---------------------------------------------------------
-# LEGENDA DE CORES NO RODAPÉ
-# ---------------------------------------------------------
-st.divider()
-st.markdown("##### 🎨 Legenda de Cores por Obra")
-obras_presentes = sorted(df["SECAO"].dropna().astype(str).unique().tolist())
-cols_leg = st.columns(min(len(obras_presentes), 6) if len(obras_presentes) > 0 else 1)
-
-for idx, obra in enumerate(obras_presentes):
-    cor = obter_cor(obra)
-    with cols_leg[idx % len(cols_leg)]:
-        st.markdown(f'<div style="background-color:{cor}; padding:4px; border-radius:4px; text-align:center; color:white; font-weight:bold;"><small>{obra}</small></div>', unsafe_allow_html=True)
+        d3 = str(data_3) if pd.notna(data_3

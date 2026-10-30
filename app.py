@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import glob
 from datetime import datetime
 from fpdf import FPDF
 
@@ -103,12 +104,34 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# ---------------------------------------------------------
+# LEITURA DINÂMICA DE TODAS AS PLANILHAS NA PASTA (.xlsx)
+# ---------------------------------------------------------
 @st.cache_data
 def carregar_dados():
-    try:
-        df = pd.read_excel("WF0031.xlsx", sheet_name="Exportar Planilha")
-        return df
-    except Exception:
+    dfs = []
+    # Busca automaticamente por qualquer arquivo Excel na raiz do projeto
+    arquivos_excel = glob.glob("*.xlsx")
+    
+    for arq in arquivos_excel:
+        try:
+            df_temp = pd.read_excel(arq, sheet_name="Exportar Planilha")
+            dfs.append(df_temp)
+        except Exception:
+            # Caso a aba específica mude ou haja algum arquivo diferente, tenta ler a primeira aba
+            try:
+                df_temp = pd.read_excel(arq)
+                dfs.append(df_temp)
+            except Exception:
+                pass
+                
+    if dfs:
+        df_unificado = pd.concat(dfs, ignore_index=True)
+        # Remove duplicadas caso o mesmo registro apareça em planilhas diferentes
+        df_unificado = df_unificado.drop_duplicates(subset=["CHAPA"], keep="last")
+        return df_unificado
+    else:
+        # Fallback padrão caso nenhum arquivo seja encontrado
         return pd.DataFrame([
             {"CHAPA": 1, "FUNCIONARIO": "DIEGO", "CARGO": "Ajudante geral", "SECAO": "DER/SP - TATUI", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 1},
             {"CHAPA": 2, "FUNCIONARIO": "JOSE", "CARGO": "Ajudante geral", "SECAO": "CCR - SÃO ROQUE", "DATA_1": "28/09/2026", "TOTAL_FALTAS": 2}
@@ -359,7 +382,7 @@ for i, etapa in enumerate(etapas_kanban):
             pdf_bytes = gerar_pdf_perfeito_ellenco(
                 nome=str(row['FUNCIONARIO']),
                 chapa=str(chapa_val),
-                cargo=str(row.get('CARGO', '-')),
+                cargo=str(row.get('Cargo', row.get('CARGO', '-'))),
                 obra=obra_nome,
                 total_faltas=total_f,
                 data_1=row.get('DATA_1'),
